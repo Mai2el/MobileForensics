@@ -19,8 +19,8 @@
 ` ` `bash
 # [Nhập lệnh tạo/kiểm tra hash, ví dụ: sha256sum <file>]
 ` ` `
-> *[Chèn screenshot kết quả lệnh hash tại đây]*
-
+![alt text](image-2.png)
+![alt text](image-3.png)
 ---
 
 ## Phần 2 — Phân Tích Tĩnh APK (3,5 điểm)
@@ -49,22 +49,22 @@
 ![alt text](image-1.png)
 ### Câu 4. Thuộc tính đáng ngờ khác trong AndroidManifest.xml
 **Trả lời:**
-- **Thuộc tính:** `[Ví dụ: android:allowBackup="true", android:usesCleartextTraffic="true", hoặc các service/receiver ẩn]`
-- **Ý nghĩa:** `[Giải thích rủi ro bảo mật của thuộc tính này]`
+- **Thuộc tính:** `android:usesCleartextTraffic="true"`
+- **Ý nghĩa:** `Thuộc tính này cho phép ứng dụng giao tiếp qua mạng bằng các giao thức bản rõ không được mã hóa (như HTTP thay vì HTTPS). Kẻ tấn công hoặc các hệ thống giám sát mạng có thể dễ dàng đọc được toàn bộ nội dung dữ liệu bị đánh cắp bằng cách bắt gói tin (sniffing/PCAP)`
 
 **Bằng chứng:**
-> *[Chèn screenshot đoạn code chứa thuộc tính trong AndroidManifest.xml]*
-
+![alt text](image-4.png)
 ### Câu 5. Luồng thực thi của ứng dụng
 **Trả lời:**
-1. **Khởi động:** Bắt đầu tại class `[Tên Class]` (phương thức `onCreate()`).
-2. **Xử lý:** Gọi đến class `[Tên Class]`, phương thức `[Tên Phương thức]`.
-3. **Thu thập/Đồng bộ:** Gọi đến class `[Tên Class]`, phương thức `[Tên Phương thức]`.
-4. **Kết thúc:** `[Mô tả luồng kết thúc]`
+1. **Khởi động:** Bắt đầu tại class `com.quickvault.sync.MainActivity` (phương thức `onCreate()`).
+
+2. **Kích hoạt tiến trình ngầm:**  từ đây gọi phương thức `startSyncRoutine()` Phương thức này tạo ra một Thread mới để chạy ngầm nhằm không làm đơ giao diện..
+3. **Đọc dữ liệu gốc:** Trong luồng ngầm, gọi đến phương thức `loadNoteDataset()`để đọc toàn bộ dữ liệu ghi chú giả lập từ file mock_notes.json nằm trong thư mục assets.
+4. **Lọc dữ liệu:** Chuyển danh sách ghi chú vừa đọc cho class NoteScanner, gọi phương thức resolveQueuedEntries() để phân tích và lọc ra các ghi chú mục tiêu (queued).
+5. **Lấy cấu hình máy chủ:** `Gọi class ConfigDecoder, phương thức resolveEndpoint() và clientVersion() để lấy URL của máy chủ đích.`
 
 **Bằng chứng:**
-> *[Chèn screenshot decompiled code (JADX/Bytecode) minh họa luồng gọi hàm]*
-
+![alt text](image-5.png)
 ### Câu 6. Tiêu chí lọc dữ liệu
 **Trả lời:**
 - Ứng dụng lọc dữ liệu dựa trên các tiêu chí sau:
