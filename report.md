@@ -209,4 +209,58 @@ CI/CD Pipeline — Service Account
 ![alt text](image-22.png)
 
 ---
-github: https://github.com/Mai2el/MobileForensics.git
+
+## Phần 4 — Tổng Hợp & Báo Cáo (2,5 điểm)
+
+### Câu 15. Sơ đồ hành vi của ứng dụng
+**Trả lời:**
+![alt text](image-23.png)
+- **Sơ đồ:**
+> *[Chèn ảnh sơ đồ tại đây]*
+
+- **Diễn giải:** 
+1. Khởi chạy: Ứng dụng bắt đầu tại MainActivity, ngay lập tức gọi hàm startSyncRoutine() chạy ngầm.
+
+2. Thu thập: Nó đọc toàn bộ dữ liệu từ bộ nhớ qua loadNoteDataset().
+
+3. Sàng lọc: Chuyển dữ liệu qua NoteScanner.resolveQueuedEntries() để lọc ra các ghi chú chứa từ khóa nhạy cảm (mật khẩu, vpn...).
+
+4. Giải mã đích đến: Dùng ConfigDecoder.resolveEndpoint() để giải mã Base64, lấy URL của máy chủ Command & Control (C2).
+
+5. Đóng gói & Ghi file: Truyền dữ liệu sang OutboxWriter.commitPendingRecords() để ghi file outbox.json (chứa dữ liệu trộm) và sync_cache.log (nhật ký trạng thái).
+
+6. Exfiltration: Ứng dụng chuẩn bị gửi (hoặc liên tục thử gửi) toàn bộ dữ liệu này lên máy chủ từ xa.
+
+### Câu 16. Indicators of Compromise (IoC)
+**Trả lời:**
+| STT | Loại IoC (Type) | Giá trị (Value) / Dấu hiệu nhận biết | Cách phát hiện (Detection Method) |
+|---|---|---|---|
+| **1** | **Network / URL** | `https://training.invalid/api/upload`<br>(Domain: `training.invalid`) | **Phân tích mạng:** Kiểm tra nhật ký tường lửa, DNS logs, Proxy hoặc cấu hình cảnh báo trên hệ thống IDS/IPS để tìm các endpoint kết nối đến domain này. |
+| **2** | **Host / Package Name** | `com.quickvault.sync.debug` | **Kiểm tra thiết bị:** Sử dụng hệ thống quản lý thiết bị di động (MDM) để quét danh sách ứng dụng, hoặc dùng lệnh `adb shell pm list packages | grep quickvault`. |
+| **3** | **Host / File Artifact** | File: `outbox.json`<br>Đường dẫn: `.../com.quickvault.sync.debug/files/outbox.json` | **Forensics:** Trích xuất file system của thiết bị, tìm kiếm tệp tin chứa cấu trúc JSON lưu trữ thông tin bị đánh cắp trong thư mục app. |
+| **4** | **Host / File Artifact** | File: `sync_cache.log`<br>Chứa nội dung: `# QuickVault Sync — cache manifest` | **Quét chuỗi:** Tìm kiếm tệp tin log trong thiết bị. Dùng công cụ tìm kiếm nội dung (grep) để bắt chuỗi text đặc trưng. |
+| **5** | **Static / Code String** | Chuỗi Base64: `aHR0cHM6Ly90cmFpbmluZy5pbnZhbGlkL2FwaS91cGxvYWQ=` | **YARA Rules / DLP:** Viết rule YARA quét mã nguồn APK. Nếu phát hiện tệp chứa chuỗi Base64 này (địa chỉ C2 mã hóa), có thể kết luận là mã độc. |
+
+### Câu 17. Tương quan giữa Phân tích tĩnh và Phân tích Artifact
+**Trả lời:**
+- **Sự bổ sung cho nhau:** Phân tích tĩnh (Static Analysis - phân tích APK, mã nguồn) và Phân tích Artifact (Artifact Analysis - phân tích dữ liệu sinh ra trên thiết bị như file log, file json) là hai mặt của một đồng xu, bổ sung chặt chẽ cho nhau trong điều tra số:
+  - **Phân tích tĩnh** giúp trả lời câu hỏi **"Ứng dụng CÓ THỂ làm gì và ĐỊNH làm gì?"** (Cho ta thấy kịch bản, logic code, tiêu chí lọc từ khóa regex, thuật toán mã hóa, và endpoint máy chủ C2).
+  - **Phân tích Artifact** giúp trả lời câu hỏi **"Ứng dụng ĐÃ THỰC SỰ làm gì và HẬU QUẢ ra sao?"** (Cung cấp bằng chứng thực tế về thời điểm lây nhiễm, thiết bị nào bị ảnh hưởng, và dữ liệu cụ thể nào đã bị đóng gói gửi đi).
+
+- **Nếu chỉ có một trong hai nguồn, chuyên gia điều tra sẽ bỏ sót:**
+  - **Nếu BỎ SÓT Phân tích tĩnh (Chỉ có Artifact):** Điều tra viên sẽ thấy file `outbox.json` chứa 6 ghi chú và file `sync_cache.log`. Tuy nhiên, họ sẽ **không hiểu được bản chất và quy luật hoạt động** (tại sao 6 ghi chú này bị chọn mà các ghi chú khác thì không). Họ cũng có thể không chứng minh được URL C2 Server là do kẻ tấn công cố tình cài cắm vào code vì không tìm thấy hàm giải mã Base64.
+  - **Nếu BỎ SÓT Phân tích Artifact (Chỉ có Phân tích tĩnh):** Điều tra viên có thể đọc hiểu toàn bộ mã nguồn và biết ứng dụng này rất nguy hiểm, nhưng lại **hoàn toàn không có bằng chứng thực tế** chứng minh thiết bị đã bị tổn hại. Họ sẽ không biết ứng dụng đã được chạy hay chưa, chạy lúc nào, và quan trọng nhất là **không biết chính xác những dữ liệu mật nào của công ty BrightWave đã lọt vào tay hacker** để tiến hành đổi mật khẩu/đóng kết nối kịp thời.
+
+### Câu 18. Đánh giá mức độ nguy hiểm
+**Trả lời:**
+- **Mức độ nguy hiểm:** **RẤT CAO / NGHIÊM TRỌNG (CRITICAL)**.
+- **Lập luận (Dựa trên bằng chứng thu thập được):**
+  1. **Nhắm mục tiêu có chủ đích (Targeted Attack):** Khác với các mã độc thu thập dữ liệu rác, ứng dụng này được lập trình với bộ lọc Regex (Câu 6) nhắm thẳng vào "yết hầu" của hệ thống an ninh doanh nghiệp: `password`, `vpn`, `admin`, `token`, `recovery`, `sftp`. Điều này cho thấy kẻ tấn công hiểu rất rõ giá trị của thông tin xác thực.
+  2. **Chiếm đoạt thành công dữ liệu tối mật:** Bằng chứng từ `outbox.json` (Câu 9, 10) cho thấy ứng dụng đã đánh cắp trót lọt các thông tin cực kỳ nhạy cảm của công ty BrightWave, bao gồm: Thông tin đăng nhập mạng VPN nội bộ, tài khoản Admin Portal, mật khẩu máy chủ SFTP, token truy cập CI/CD Pipeline (GitHub Actions), và thậm chí cả mã khôi phục (Recovery Codes) của hệ thống SSO.
+  3. **Khả năng tẩu tán và lẩn tránh tinh vi:** Ứng dụng che giấu địa chỉ C2 Server bằng Base64 (Câu 7). Tệ hơn, cơ chế đồng bộ trong `sync_cache.log` (Câu 12) sử dụng `retry_policy=exponential_backoff`, nghĩa là mã độc cực kỳ "lì lợm", nó sẽ âm thầm chờ đợi và liên tục tìm cách gửi dữ liệu ra ngoài internet cho đến khi thành công, bất chấp mạng có chập chờn.
+  4. **Hậu quả thực tế:** Nếu thiết bị này (đã cài ứng dụng) được dùng để kết nối vào mạng nội bộ của BrightWave, kẻ tấn công bên ngoài có thể sử dụng ngay lập tức các token và VPN credentials vừa trộm được để thâm nhập sâu vào hạ tầng công ty (Lateral Movement), leo thang đặc quyền (nhờ tài khoản Admin), đánh cắp tài sản trí tuệ hoặc triển khai Ransomware.
+
+**Kết luận:** Sự xuất hiện của ứng dụng này trên thiết bị nhân viên là một sự cố bảo mật (Security Incident) cấp độ 1. Cần lập tức cách ly thiết bị, chặn domain `training.invalid` trên tường lửa công ty, và bắt buộc nhân viên đổi toàn bộ mật khẩu/thu hồi token đã bị lộ trong file `outbox.json`.
+
+---
+Github: https://github.com/Mai2el/MobileForensics.git
