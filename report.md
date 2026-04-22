@@ -40,7 +40,8 @@ device_dump/apps/SecureNotesSync_v1.2.apk
 - **minSdk:** `26`
 - **targetSdk:** `34`
 
-**Bằng chứng:**
+**Bằng chứng:**: Sử dụng phần mềm online decompiler.com
+![alt text](image-10.png)
 > ![alt text](image.png)
 
 ### Câu 3. Quyền (Permissions) được khai báo
@@ -75,124 +76,137 @@ device_dump/apps/SecureNotesSync_v1.2.apk
 
 **Bằng chứng:**
 ![alt text](image-5.png)
+![alt text](image-9.png)
+![alt text](image-11.png)
 ### Câu 6. Tiêu chí lọc dữ liệu
 **Trả lời:**
 - Ứng dụng lọc dữ liệu dựa trên các tiêu chí sau:
-  - `[Tiêu chí 1: ví dụ - Từ khóa cụ thể trong nội dung/tiêu đề]`
-  - `[Tiêu chí 2: ví dụ - Kích thước file, định dạng file]`
+  - (?i)password\s*[=:]\s*\S+: Tìm kiếm chuỗi có chứa từ "password" (không phân biệt hoa/thường), theo sau là dấu "=" hoặc ":" và các ký tự liền kề (mật khẩu).
+  - (?i)\bvpn\b: Tìm kiếm từ khóa "vpn" (không phân biệt hoa/thường).
+  - (?i)\badmin\b: Tìm kiếm từ khóa "admin" (không phân biệt hoa/thường).
+  - (?i)token\s*[=:]\s*\S+: Tìm kiếm chuỗi có chứa từ "token" (không phân biệt hoa/thường), theo sau là dấu "=" hoặc ":" (chuỗi xác thực).
+  - (?i)\brecovery\b: Tìm kiếm từ khóa "recovery" (thường liên quan đến mã khôi phục tài khoản).
+  - (?i)\bsftp\b: Tìm kiếm từ khóa "sftp" (giao thức truyền file bảo mật).
+  - (?i)credential: Tìm kiếm từ khóa "credential" (thông tin đăng nhập).
 
-**Bằng chứng:**
-> *[Chèn screenshot đoạn code chứa logic if/else hoặc regex dùng để lọc]*
+**Bằng chứng:**   
+> ![alt text](image-12.png)
 
 ### Câu 7. Phân tích hằng số được mã hoá
 **Trả lời:**
-- **Hằng số tìm thấy (Encrypted/Encoded):** `[Chuỗi mã hóa]`
-- **Giá trị sau khi giải mã:** `[Chuỗi giải mã]`
-- **Ý nghĩa:** Giá trị này được sử dụng để `[ví dụ: làm địa chỉ C2 server, URL webhook, hoặc khóa mã hóa AES]`.
+- **Hằng số tìm thấy (Encrypted/Encoded):** Trong class ConfigDecoder, có hai hằng số được mã hóa bằng Base64:
+- Hằng số RC = "aHR0cHM6Ly90cmFpbmluZy5pbnZhbGlkL2FwaS91cGxvYWQ="
+- Hằng số CV = "djEuNC4y"
+- **Giá trị sau khi giải mã:** https://training.invalid/api/upload
+- CV giải mã ra thành: v1.4.2
+- **Ý nghĩa:** Giá trị RC chính là URL của máy chủ đích (C2 Server / Endpoint). Đây là địa chỉ web mà ứng dụng sẽ lén lút "tuồn" (upload) các ghi chú nhạy cảm của người dùng về đó.
 
 **Bằng chứng:**
-> *[Chèn screenshot đoạn code chứa hằng số và output của quá trình/tool giải mã (CyberChef/Script)]*
+![alt text](image-13.png)
+![alt text](image-14.png)
+![alt text](image-15.png)
+
 
 ### Câu 8. File được ghi xuống thiết bị
 **Trả lời:**
 - **Các file được tạo:**
-  1. `[Tên file 1]`
-  2. `[Tên file 2]`
-- **Đường dẫn đầy đủ trên thiết bị:** `/data/data/[package_name]/...`
+  1. outbox.json (chứa dữ liệu ghi chú bị đánh cắp).
+  2. sync_cache.log (chứa nhật ký và cấu hình đồng bộ).
+- **Đường dẫn đầy đủ trên thiết bị:** 
+- Ưu tiên 1 (External Files Dir): /storage/emulated/0/Android/data/com.quickvault.sync.debug/files/
+- Dự phòng (Internal Files Dir): /data/data/com.quickvault.sync.debug/files/
 
 **Bằng chứng:**
-> *[Chèn screenshot đoạn code thực hiện thao tác File/FileOutputStream]*
-
+![alt text](image-16.png)
+![alt text](image-17.png)
 ---
 
 ## Phần 3 — Phân Tích Artifact (3,5 điểm)
 
 ### Câu 9. Phân tích `outbox.json`
 **Trả lời:**
-- **Số lượng record:** `[Số lượng]`
-- **Thời gian tạo:** `[Trích xuất từ metadata hoặc nội dung file]`
-- **Cấu trúc mỗi record:** Gồm các trường `[ví dụ: id, title, content, timestamp, is_synced]`.
+- **Số lượng record:** `9`
+- **Thời gian tạo:** `2026-04-20T15:11:02Z`
+- **Cấu trúc mỗi record:** 
+
+- id: Mã định danh của ghi chú (ví dụ: note_003).
+
+- title: Tiêu đề của ghi chú (ví dụ: Home Network, VPN — Corporate Access).
+
+- body: Nội dung chi tiết của ghi chú, nơi chứa các thông tin nhạy cảm.
+
+- tags: Một mảng chứa các nhãn phân loại của ghi chú (ví dụ: personal, work, credentials).
+
+- ts: Dấu thời gian (timestamp) lưu lại thời điểm ghi chú này được sửa đổi lần cuối (ví dụ: 2024-02-18T09:30:00Z).
 
 **Bằng chứng:**
-> *[Chèn screenshot một phần nội dung file outbox.json]*
+![alt text](image-18.png)
 
 ### Câu 10. Phân tích tiêu đề ghi chú bị thu thập
 **Trả lời:**
 - **Các tiêu đề bị thu thập:**
-  1. `[Tiêu đề 1]`
-  2. `[Tiêu đề 2]`
-- **Nguyên nhân bị chọn:** Các ghi chú này thỏa mãn tiêu chí lọc được tìm thấy ở Câu 6 (có chứa từ khóa `[...]`).
 
-**Bằng chứng:**
-> *[Chèn screenshot trích xuất danh sách tiêu đề từ outbox.json]*
+Home Network
+
+VPN — Corporate Access
+
+Internal Tools — Admin Portal
+
+BrightWave SSO — Recovery Codes
+
+SFTP — Reports Server
+
+CI/CD Pipeline — Service Account
+- **Nguyên nhân bị chọn:** Những ghi chú này bị chọn (thu thập) là do nội dung (body) hoặc tiêu đề (title) của chúng có chứa các từ khóa nhạy cảm khớp với danh sách các biểu thức chính quy (Regex) được lập trình sẵn trong file NoteScanner.java (đã phân tích ở Câu 6).
+
 
 ### Câu 11. Đối chiếu Dataset gốc
 **Trả lời:**
-- **Tổng số ghi chú trong APK:** `[Số lượng]`
-- **Số ghi chú KHÔNG bị thu thập:** `[Số lượng]`
-- **Điểm chung của các ghi chú không bị thu thập:** `[Đặc điểm, ví dụ: Không chứa từ khóa nhạy cảm "mật khẩu", "tài chính"]`
+- **Tổng số ghi chú trong APK:** `14`
+- **Số ghi chú KHÔNG bị thu thập:** `8`
+- **Điểm chung của các ghi chú không bị thu thập:** `là các ghi chú cá nhân thông thường như: danh sách đi chợ, ghi chú họp hành, lịch tập gym, gợi ý sách/podcast, kế hoạch du lịch, hoặc nhắc nhở công việc chung. Điểm chung quan trọng nhất là trong tiêu đề (title) và nội dung (content) của chúng không chứa bất kỳ từ khóa nhạy cảm nào (như password, vpn, admin, token, recovery, sftp) khớp với bộ lọc CONTENT_SIGNALS mà mã độc đã định nghĩa. Do đó, chúng bị bỏ qua.`
 
 **Bằng chứng:**
-> *[Chèn screenshot so sánh dataset gốc và outbox.json]*
+![alt text](image-19.png)
 
 ### Câu 12. Phân tích `sync_cache.log`
 **Trả lời:**
-- **Các trường trong file log:** `[Liệt kê các trường]`
-- **Hành vi dự kiến:** File log này cho thấy ứng dụng đang theo dõi trạng thái `[ví dụ: kết nối mạng, thời gian sync cuối cùng, số lượng file đã upload thành công]` nhằm mục đích `[mô tả mục đích]`.
+- timestamp=2026-04-20T15:11:02Z: Dấu thời gian ghi log, khớp chính xác với thời điểm file outbox.json được tạo.
+
+- client_version=v1.4.2: Phiên bản của ứng dụng.
+
+- sync_endpoint=https://training.invalid/api/upload: Địa chỉ máy chủ từ xa (C2 Server) mà ứng dụng dự định gửi dữ liệu đến.
+
+- queue_depth=6: Số lượng bản ghi chú đang chờ trong hàng đợi để gửi đi (khớp với 6 bản ghi nhạy cảm bị đánh cắp trong outbox.json).
+
+- status=PENDING: Trạng thái hiện tại là "Đang chờ". Ứng dụng đã đóng gói xong dữ liệu nhưng chưa gửi đi (hoặc đang chờ kết nối mạng).
+
+- transport=HTTPS/1.1 & content_type=application/json: Ứng dụng sẽ gửi file outbox.json qua giao thức HTTPS.
+
+- retry_policy=exponential_backoff & max_retries=5: Cơ chế thử lại. Nếu việc gửi thất bại, nó sẽ thử lại tối đa 5 lần với thời gian chờ giữa các lần tăng dần.
 
 **Bằng chứng:**
-> *[Chèn screenshot nội dung sync_cache.log]*
-
+![alt text](image-20.png)
 ### Câu 13. Mối liên hệ giữa Câu 7 và `sync_cache.log`
 **Trả lời:**
-- Giá trị hằng số giải mã ở Câu 7 (`[Giá trị]`) xuất hiện hoặc liên quan trực tiếp đến nội dung trong `sync_cache.log` ở điểm: `[Giải thích sự khớp nối, ví dụ: URL endpoint trong Câu 7 chính là đích đến của các request được ghi nhận trong log]`.
+- Giá trị giải mã từ hằng số RC ở Câu 7 là https://training.invalid/api/upload. Giá trị này trùng khớp hoàn toàn với trường sync_endpoint được ghi nhận trong file sync_cache.log.
 
-**Bằng chứng:**
-> *[Chèn screenshot đánh dấu sự đối chiếu giữa 2 dữ liệu]*
+- Tương tự, giá trị giải mã từ hằng số CV ở Câu 7 là v1.4.2 cũng trùng khớp hoàn toàn với trường client_version trong file log.
+- Mối liên hệ: Ứng dụng đã sử dụng thuật toán mã hóa (Base64 ở Câu 7) để che giấu địa chỉ máy chủ độc hại (C2 Server) nhằm qua mặt các hệ thống quét tĩnh tĩnh. Tuy nhiên, khi ứng dụng thực sự hoạt động và đóng gói dữ liệu (ở Câu 12), nó buộc phải giải mã chuỗi này để tạo thành một request mạng hoàn chỉnh. Quá trình này đã để lại dấu vết dạng bản rõ (plaintext) trong file nhật ký sync_cache.log.
+
 
 ### Câu 14. Phân tích `package_dump.txt` và `logcat.txt`
 **Trả lời:**
 - **Từ `package_dump.txt`:**
-  1. `[Thông tin 1: ví dụ - Thời gian cài đặt chính xác (firstInstallTime)]`
-  2. `[Thông tin 2: ví dụ - Người dùng/UID chạy ứng dụng]`
+  1. Thời điểm cài đặt chính xác. * Bằng chứng: timeStamp=2026-04-20 15:11:01 và firstInstallTime=2026-04-20 15:11:01.
+  2. Giá trị điều tra: Giúp điều tra viên xác định được chính xác "thời điểm số không" (Patient Zero) khi thiết bị bắt đầu bị nhiễm. Trùng khớp một cách logic với thời điểm file outbox.json được tạo ra (15:11:02 - tức là chỉ 1 giây sau khi cài đặt).
 - **Từ `logcat.txt`:**
-  1. `[Thông tin 1: ví dụ - Exception/Lỗi lộ rõ hành vi gửi dữ liệu ngầm]`
-  2. `[Thông tin 2: ví dụ - PID của process độc hại khi nó trigger hành vi]`
+  1. Bằng chứng: flags=[ DEBUGGABLE HAS_CODE ALLOW_CLEAR_USER_DATA ALLOW_BACKUP ] và appId=10098.
+  2. Giá trị điều tra: Xác nhận lại những phân tích tĩnh ở Câu 4 là hoàn toàn chính xác (app cố tình bật Allow Backup và Debug). Ngoài ra, biết được UID là 10098 (hay u0a98) giúp dễ dàng truy vết quyền sở hữu các file độc hại trên hệ thống Linux/Android.
 
 **Bằng chứng:**
-> *[Chèn screenshot các dòng log/dump quan trọng]*
+![alt text](image-21.png)
+![alt text](image-22.png)
 
 ---
-
-## Phần 4 — Tổng Hợp & Báo Cáo (2,5 điểm)
-
-### Câu 15. Sơ đồ hành vi của ứng dụng
-**Trả lời:**
-*Mô tả sơ đồ (có thể vẽ bằng Draw.io, PlantUML hoặc Mermaid và chèn ảnh vào đây):*
-- **Sơ đồ:**
-> *[Chèn ảnh sơ đồ tại đây]*
-
-- **Diễn giải:** Ứng dụng bắt đầu từ `[Class A].[Method X]` -> Đọc dữ liệu từ `[Đường dẫn dataset]` -> Lọc theo điều kiện -> Ghi ra file `[File name]` bằng `[Class B].[Method Y]` -> Lưu log tại `[Log file]` -> Gửi về `[Server]`.
-
-### Câu 16. Indicators of Compromise (IoC)
-**Trả lời:**
-| STT | Loại IoC | Giá trị (Value) | Cách phát hiện |
-|---|---|---|---|
-| 1 | File Path | `/data/data/.../outbox.json` | Kiểm tra file system |
-| 2 | File Path | `[Đường dẫn file log]` | Kiểm tra file system |
-| 3 | Network/URL | `https://quantrimang.com/lang-cong-nghe/command-and-control-cho-phan-mem-doc-hai-la-gi-180962` | Phân tích lưu lượng mạng (PCAP/Proxy) |
-| 4 | Hash (SHA256) | `[Hash của APK]` | Quét malware bằng MDM/EDR |
-| 5 | Package Name | `com.brightwave...` | Dùng lệnh `adb shell pm list packages` |
-
-### Câu 17. Tương quan giữa Phân tích tĩnh và Phân tích Artifact
-**Trả lời:**
-- Phân tích tĩnh cho ta biết **ứng dụng CÓ THỂ làm gì** (logic code, tiêu chí lọc, endpoint tĩnh). Phân tích artifact chứng minh **ứng dụng ĐÃ THỰC SỰ làm gì** trên thiết bị (dữ liệu nào đã bị trộm, thời điểm hoạt động).
-- **Nếu bỏ sót phân tích tĩnh:** Không hiểu được quy luật hoạt động (tại sao file A bị lấy mà file B thì không), không tìm được các hằng số bị ẩn.
-- **Nếu bỏ sót phân tích artifact:** Không có bằng chứng thực tế chứng minh thiết bị đã bị tổn hại và mức độ thiệt hại (dữ liệu nào đã lọt ra ngoài).
-
-### Câu 18. Đánh giá mức độ nguy hiểm
-**Trả lời:**
-- **Mức độ:** `[Cao/Nghiêm trọng]`
-- **Lập luận:** Bằng chứng cho thấy ứng dụng chủ động nhắm mục tiêu vào các dữ liệu nhạy cảm (dựa trên bộ lọc ở Câu 6), tự động đóng gói (`outbox.json`) và có khả năng tuồn dữ liệu ra ngoài (Câu 7, 12). Việc một thiết bị truy cập mạng nội bộ cài đặt ứng dụng này có thể dẫn đến lộ lọt tài sản trí tuệ hoặc thông tin xác thực của công ty BrightWave.
-
----
+github: https://github.com/Mai2el/MobileForensics.git
