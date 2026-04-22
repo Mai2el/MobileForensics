@@ -1,7 +1,12 @@
 # BÁO CÁO THỰC HÀNH: ANDROID FORENSICS & REVERSE ENGINEERING
 **Bài Thực Hành:** AndroidBreach Lab — SecureNotesSync
-**Họ và tên:** [Nhập Họ và Tên của bạn]
-**MSSV:** [Nhập MSSV của bạn]
+
+**Nhóm 14**:
+
+**Họ và tên:** Võ Hoài Nam - 23520990
+
+**Họ và tên:** Nguyễn Huỳnh Nhân - 23521080
+
 **Môn học:** Digital Forensics
 
 ---
@@ -11,8 +16,12 @@
 ### Câu 1. Xác minh tính toàn vẹn của các file trong evidence package.
 **Trả lời:**
 - **Kết quả kiểm tra (Mã Hash):**
-  - Hash MD5/SHA256 của file ZIP gốc: `[Nhập mã hash]`
-  - Hash của APK: `[Nhập mã hash]`
+device_dump/sdcard/Android/data/com.quickvault.sync.debug/files/outbox.json
+![alt text](image-6.png)
+device_dump/sdcard/Android/data/com.quickvault.sync.debug/files/sync_cache.log
+![alt text](image-7.png)
+device_dump/apps/SecureNotesSync_v1.2.apk
+![alt text](image-8.png)
 - **Giải thích:** Bước này là bắt buộc trong điều tra số nhằm đảm bảo bằng chứng (evidence) không bị thay đổi, giả mạo hoặc hỏng hóc trong quá trình thu thập và phân tích. Việc khớp mã hash chứng minh tính toàn vẹn và giá trị pháp lý của bằng chứng.
 
 **Bằng chứng (Command/Output):**
@@ -62,6 +71,7 @@
 3. **Đọc dữ liệu gốc:** Trong luồng ngầm, gọi đến phương thức `loadNoteDataset()`để đọc toàn bộ dữ liệu ghi chú giả lập từ file mock_notes.json nằm trong thư mục assets.
 4. **Lọc dữ liệu:** Chuyển danh sách ghi chú vừa đọc cho class NoteScanner, gọi phương thức resolveQueuedEntries() để phân tích và lọc ra các ghi chú mục tiêu (queued).
 5. **Lấy cấu hình máy chủ:** `Gọi class ConfigDecoder, phương thức resolveEndpoint() và clientVersion() để lấy URL của máy chủ đích.`
+6. **Đóng gói và Ghi file:** Gọi class OutboxWriter, phương thức commitPendingRecords() để ghi các ghi chú đã lọc xuống thiết bị và chuẩn bị gửi đi. Cuối cùng, cập nhật giao diện (UI) báo hoàn thành bằng uiHandler.
 
 **Bằng chứng:**
 ![alt text](image-5.png)
